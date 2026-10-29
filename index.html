@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Turbo Lane</title>
+    <!-- Browser Address Bar Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏎️</text></svg>">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #141e30, #243b55);
+            --container-bg: #1b263b;
+            --container-border: #000000;
+            --text-color: #ffffff;
+            --primary-color: #f39c12;
+            --hud-text: #ffffff;
+            --canvas-bg: #1e293b;
+        }
+
+        [data-theme="cyberpunk"] {
+            --bg-gradient: linear-gradient(135deg, #090314, #1b0a38);
+            --container-bg: #0d061c;
+            --container-border: #000000;
+            --text-color: #00ffff;
+            --primary-color: #ff007f;
+            --hud-text: #00ffff;
+            --canvas-bg: #05020d;
+        }
+
+        [data-theme="pastel"] {
+            --bg-gradient: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+            --container-bg: #f8fafc;
+            --container-border: #000000;
+            --text-color: #1e293b;
+            --primary-color: #6366f1;
+            --hud-text: #1e293b;
+            --canvas-bg: #cbd5e1;
+        }
+
+        [data-theme="night"] {
+            --bg-gradient: linear-gradient(135deg, #020617, #0f172a);
+            --container-bg: #090d16;
+            --container-border: #000000;
+            --text-color: #38bdf8;
+            --primary-color: #38bdf8;
+            --hud-text: #38bdf8;
+            --canvas-bg: #030712;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            color: var(--text-color);
+            padding: env(safe-area-inset-top, 12px) env(safe-area-inset-right, 12px) calc(env(safe-area-inset-bottom, 12px) + 15px) env(safe-area-inset-left, 12px);
+        }
+
+        header {
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+            margin-bottom: 2px;
+            letter-spacing: 1px;
+        }
+
+        #game-container {
+            position: relative;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--container-bg);
+            border: 4px solid #000000;
+            width: 540px;
+            max-width: 100%;
+            height: 750px;
+            max-height: 85vh;
+        }
+
+        canvas {
+            display: block;
+            background: var(--canvas-bg);
+            width: 100%;
+            height: 100%;
+        }
+
+        /* UI Overlays */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 15, 25, 0.94);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            z-index: 10;
+            text-align: center;
+            transition: opacity 0.2s ease;
+            overflow-y: auto;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay h2 {
+            font-size: 1.6rem;
+            color: var(--primary-color);
+            margin-bottom: 6px;
+            text-shadow: 0 2px 10px rgba(243, 156, 18, 0.4);
+            letter-spacing: 1px;
+        }
+
+        .overlay p {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: #0f172a;
+            font-weight: bold;
+            font-size: 0.9rem;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            margin: 4px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.1s, filter 0.1s;
+            width: 195px;
+        }
+
+        .btn:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-secondary {
+            background: #475569;
+            color: #fff;
+        }
+
+        /* Theme & Car Selector Containers */
+        .select-group {
+            margin: 3px 0 8px 0;
+        }
+
+        .select-label {
+            font-size: 0.72rem;
+            margin-bottom: 2px;
+            color: #94a3b8;
+        }
+
+        .select-container {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .option-btn {
+            background: #334155;
+            color: #fff;
+            border: 2px solid #64748b;
+            padding: 3px 8px;
+            font-size: 0.72rem;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-btn.active {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        /* In-Game HUD overlay elements */
+        .hud-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .hud-item {
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: var(--hud-text);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+            pointer-events: auto;
+        }
+
+        .menu-btn-hud {
+            pointer-events: auto;
+            background: rgba(15, 23, 42, 0.85);
+            color: #fff;
+            border: 2px solid var(--primary-color);
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+
+        .menu-btn-hud:hover {
+            transform: scale(1.05);
+        }
+
+        .controls-hint {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.75);
+            margin-top: 6px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body data-theme="classic">
+
+    <header>
+        <h1> 🏁 TURBO LANES 🏁</h1>
+    </header>
+
+    <div id="game-container">
+        <!-- Canvas -->
+        <canvas id="gameCanvas" width="540" height="750"></canvas>
+
+        <!-- In-Game HUD Bar -->
+        <div id="hudBar" class="hud-bar hidden">
+            <div id="hudScore" class="hud-item">Overtakes: 0</div>
+            <div id="hudPowerUps" class="hud-item">🔧 0/5</div>
+            <button id="inGameMenuBtn" class="menu-btn-hud">Menu</button>
+            <div id="hudLives" class="hud-item">❤️ 3</div>
+        </div>
+
+        <!-- Splash / Main Menu Screen -->
+        <div id="splashScreen" class="overlay">
+            <h2>OVERTAKE</h2>
+            <p>Overtake traffic on the 6-lane highway</p>
+            
+            <!-- Vehicle Selection -->
+            <div class="select-group">
+                <div class="select-label">Player Vehicle:</div>
+                <div class="select-container" id="carSelectSplash">
+                    <button class="option-btn active" data-car="normal">Normal Car</button>
+                    <button class="option-btn" data-car="police">Police Cruiser</button>
+                </div>
+            </div>
+
+            <!-- Theme Selection -->
+            <div class="select-group">
+                <div class="select-label">Circuit Theme:</div>
+                <div class="select-container" id="themeSelectSplash">
+                    <button class="option-btn active" data-theme="classic">Classic Asphalt</button>
+                    <button class="option-btn" data-theme="cyberpunk">Neon Speedway</button>
+                    <button class="option-btn" data-theme="pastel">Pastel Circuit</button>
+                    <button class="option-btn" data-theme="night">Midnight Highway</button>
+                </div>
+            </div>
+
+            <button class="btn" id="startBtn">DRIVE</button>
+            <button class="btn btn-secondary" id="instructionsBtn">Instructions</button>
+            <p id="highScoreSplash" style="font-size: 0.82rem; margin-top: 5px; color: #f39c12;">Best Overtakes: 0</p>
+        </div>
+
+        <!-- Instructions Modal / Screen -->
+        <div id="instructionsScreen" class="overlay hidden">
+            <h2>Driver's Guide</h2>
+            <p style="text-align: left; max-width: 290px; margin: 0 auto 14px auto;">
+                🏎️ <b>Forward View:</b> All cars face forward toward the top of the screen[span_6](start_span)[span_6](end_span)!<br><br>
+                🕹️ <b>Steer:</b> Use <b>Left/Right Arrows</b>, <b>A/D keys</b>, or drag/swipe on touchscreens.[span_7](start_span)[span_7](end_span)<br><br>
+                🚙 <b>Overtake:</b> Pass slower traffic cars going the same way. Collisions cost lives[span_8](start_span)[span_8](end_span)!<br><br>
+                🔧 <b>Power-ups:</b> Collect wrenches, nitro & stars for +5 bonus points[span_9](start_span)[span_9](end_span)!<br><br>
+                ⚡ <b>Pace:</b> Traffic speeds up as you score higher[span_10](start_span)[span_10](end_span)!
+            </p>
+            <button class="btn" id="backToSplashBtn">Back</button>
+        </div>
+
+        <!-- Pause / In-Game Menu Modal -->
+        <div id="pauseScreen" class="overlay hidden">
+            <h2>Race Paused</h2>
+
+            <!-- Vehicle Selection -->
+            <div class="select-group">
+                <div class="select-label">Player Vehicle:</div>
+                <div class="select-container" id="carSelectPause">
+                    <button class="option-btn active" data-car="normal">Normal Car</button>
+                    <button class="option-btn" data-car="police">Police Cruiser</button>
+                </div>
+            </div>
+
+            <!-- Theme Selection -->
+            <div class="select-group">
+                <div class="select-label">Circuit Theme:</div>
+                <div class="select-container" id="themeSelectPause">
+                    <button class="option-btn active" data-theme="classic">Classic Asphalt</button>
+                    <button class="option-btn" data-theme="cyberpunk">Neon Speedway</button>
+                    <button class="option-btn" data-theme="pastel">Pastel Circuit</button>
+                    <button class="option-btn" data-theme="night">Midnight Highway</button>
+                </div>
+            </div>
+
+            <button class="btn" id="resumeBtn">Resume Rush</button>
+            <button class="btn btn-secondary" id="restartBtn">Restart Rush</button>
+            <button class="btn btn-secondary" id="quitBtn" style="background: #ef4444; color: #fff; margin-top: 5px;">Quit to Garage</button>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="gameOverScreen" class="overlay hidden">
+            <h2>CRASH!</h2>
+            <p id="finalScoreText" style="font-size: 1.05rem; margin-bottom: 4px;">Total Overtakes: 0</p>
+            <p id="highScoreText" style="font-size: 0.9rem; color: #f39c12; margin-bottom: 16px;">Best Overtakes: 0</p>
+            <button class="btn" id="restartGameBtn">Race Again</button>
+            <button class="btn btn-secondary" id="mainMenuBtn" style="margin-top: 8px;">Garage Menu</button>
+        </div>
+    </div>
+
+    <div class="controls-hint">Use Arrow keys / A & D or Swipe to maneuver your racer[span_11](start_span)[span_11](end_span)</div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game States
+        const STATE_SPLASH = 0;
+        const STATE_PLAYING = 1;
+        const STATE_PAUSED = 2;
+        const STATE_GAMEOVER = 3;
+        let gameState = STATE_SPLASH;
+
+        // Score & Lives
+        let score = 0;
+        let highScore = localStorage.getItem('overtakeRushHighScore') || 0;
+        let lives = 3;
+        let powerUpCount = 0;
+        let gameSpeed = 5;
+        let roadOffset = 0;
+
+        // Customization Options
+        let currentTheme = 'classic';
+        let playerCarType = 'normal'; // 'normal' or 'police'
+
+        // Player Car (50x78 size)
+        const player = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 180,
+            width: 50,
+            height: 78,
+            speed: 8,
+            color: '#3b82f6'
+        };
+
+        // Entities arrays
+        let trafficCars = []; 
+        let powerUps = [];    
+        let particles = [];
+
+        // Web Audio API for British Police Two-Tone Siren with cumulative 5-second extension
+        let audioCtx = null;
+        let activeSirenOsc = null;
+        let activeSirenGain = null;
+        let sirenStopTime = 0;
+
+        function playBritishPoliceSiren() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const now = audioCtx.currentTime;
+                const extension = 5.0;
+
+                // If siren is already playing, add 5 seconds onto the remaining time instead of double-playing
+                if (activeSirenOsc && sirenStopTime > now) {
+                    sirenStopTime += extension;
+                } else {
+                    sirenStopTime = now + extension;
+                }
+
+                // Stop any currently running instance to cleanly transition to the extended duration
+                if (activeSirenOsc) {
+                    try { activeSirenOsc.stop(); } catch (e) {}
+                    try { activeSirenOsc.disconnect(); } catch (e) {}
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.type = 'sine';
+
+                const totalDuration = sirenStopTime - now;
+                const cycleDuration = 0.8;
+                
+                osc.frequency.setValueAtTime(960, now);
+                for (let t = 0; t < totalDuration; t += cycleDuration) {
+                    osc.frequency.setValueAtTime(960, now + t);
+                    osc.frequency.setValueAtTime(775, now + t + cycleDuration / 2);
+                }
+
+                // Hold constant volume until the very end, then shut off
+                gainNode.gain.setValueAtTime(0.2, now);
+                gainNode.gain.setValueAtTime(0.2, sirenStopTime - 0.05);
+                gainNode.gain.linearRampToValueAtTime(0.0, sirenStopTime);
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(sirenStopTime);
+
+                activeSirenOsc = osc;
+                activeSirenGain = gainNode;
+            } catch (e) {
+                console.log("Audio not initialized yet", e);
+            }
+        }
+
+        // DOM Elements
+        const splashScreen = document.getElementById('splashScreen');
+        const instructionsScreen = document.getElementById('instructionsScreen');
+        const pauseScreen = document.getElementById('pauseScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const hudBar = document.getElementById('hudBar');
+        const hudScore = document.getElementById('hudScore');
+        const hudLives = document.getElementById('hudLives');
+        const finalScoreText = document.getElementById('finalScoreText');
+        const highScoreText = document.getElementById('highScoreText');
+        const highScoreSplash = document.getElementById('highScoreSplash');
+
+        highScoreSplash.textContent = `Best Overtakes: ${highScore}`;
+
+        // Sync and Set Theme
+        function setTheme(themeName) {
+            currentTheme = themeName;
+            document.body.setAttribute('data-theme', themeName);
+            document.querySelectorAll('[data-theme]').forEach(btn => {
+                if (btn.getAttribute('data-theme') === themeName) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        document.querySelectorAll('[data-theme]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setTheme(btn.getAttribute('data-theme'));
+            });
+        });
+
+        // Sync and Set Car Type
+        function setCarType(carType) {
+            playerCarType = carType;
+            document.querySelectorAll('[data-car]').forEach(btn => {
+                if (btn.getAttribute('data-car') === carType) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        document.querySelectorAll('[data-car]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setCarType(btn.getAttribute('data-car'));
+            });
+        });
+
+        // UI Button Events
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('instructionsBtn').addEventListener('click', () => {
+            splashScreen.classList.add('hidden');
+            instructionsScreen.classList.remove('hidden');
+        });
+        document.getElementById('backToSplashBtn').addEventListener('click', () => {
+            instructionsScreen.classList.add('hidden');
+            splashScreen.classList.remove('hidden');
+        });
+        document.getElementById('inGameMenuBtn').addEventListener('click', pauseGame);
+        document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            pauseScreen.classList.add('hidden');
+            startGame();
+        });
+        document.getElementById('quitBtn').addEventListener('click', () => {
+            pauseScreen.classList.add('hidden');
+            gameState = STATE_SPLASH;
+            hudBar.classList.add('hidden');
+            splashScreen.classList.remove('hidden');
+            highScoreSplash.textContent = `Best Overtakes: ${highScore}`;
+        });
+        document.getElementById('restartGameBtn').addEventListener('click', startGame);
+        document.getElementById('mainMenuBtn').addEventListener('click', () => {
+            gameOverScreen.classList.add('hidden');
+            gameState = STATE_SPLASH;
+            splashScreen.classList.remove('hidden');
+            highScoreSplash.textContent = `Best Overtakes: ${highScore}`;
+        });
+
+        // Input tracking
+        const keys = {};
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (e.code === 'Space' || e.code === 'Enter') {
+                if (gameState === STATE_SPLASH) {
+                    startGame();
+                } else if (gameState === STATE_GAMEOVER) {
+                    startGame();
+                }
+            }
+            if (e.code === 'Escape' || e.code === 'KeyP') {
+                if (gameState === STATE_PLAYING) {
+                    pauseGame();
+                } else if (gameState === STATE_PAUSED) {
+                    resumeGame();
+                }
+            }
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.code] = false;
+        });
+
+        // Touch & Mouse movement handlers
+        canvas.addEventListener('touchmove', e => {
+            if (gameState !== STATE_PLAYING) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const touchX = (e.touches[0].clientX - rect.left) * scaleX;
+            player.x = touchX - player.width / 2;
+            if (player.x < 15) player.x = 15;
+            if (player.x > canvas.width - player.width - 15) player.x = canvas.width - player.width - 15;
+            e.preventDefault();
+        }, { passive: false });
+
+        canvas.addEventListener('mousemove', e => {
+            if (gameState !== STATE_PLAYING) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const mouseX = (e.clientX - rect.left) * scaleX;
+            player.x = mouseX - player.width / 2;
+            if (player.x < 15) player.x = 15;
+            if (player.x > canvas.width - player.width - 15) player.x = canvas.width - player.width - 15;
+        });
+
+        function startGame() {
+            score = 0;
+            lives = 3;
+            powerUpCount = 0;
+            gameSpeed = 5;
+            trafficCars = [];
+            powerUps = [];
+            particles = [];
+            player.x = canvas.width / 2 - 25;
+            player.y = canvas.height - 180;
+            
+            splashScreen.classList.add('hidden');
+            instructionsScreen.classList.add('hidden');
+            pauseScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            hudBar.classList.remove('hidden');
+            
+            updateHUD();
+            gameState = STATE_PLAYING;
+        }
+
+        function pauseGame() {
+            if (gameState !== STATE_PLAYING) return;
+            gameState = STATE_PAUSED;
+            pauseScreen.classList.remove('hidden');
+        }
+
+        function resumeGame() {
+            if (gameState !== STATE_PAUSED) return;
+            pauseScreen.classList.add('hidden');
+            gameState = STATE_PLAYING;
+        }
+
+        function updateHUD() {
+            hudScore.textContent = `Overtakes: ${score}`;
+            document.getElementById('hudPowerUps').textContent = `🔧 ${powerUpCount}/5`;
+            hudLives.textContent = `${'❤️'.repeat(Math.max(0, lives))}`;
+        }
+
+        // Spawn timer
+        let spawnTimer = 0;
+        const trafficColors = ['#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
+        const powerupSymbols = ['🔧', '⚡', '⭐'];
+
+        function update() {
+            if (gameState !== STATE_PLAYING) return;
+
+            // Player movement via keyboard
+            if (keys['ArrowLeft'] || keys['KeyA']) {
+                player.x -= player.speed;
+            }
+            if (keys['ArrowRight'] || keys['KeyD']) {
+                player.x += player.speed;
+            }
+
+            // Boundary check
+            if (player.x < 15) player.x = 15;
+            if (player.x > canvas.width - player.width - 15) player.x = canvas.width - player.width - 15;
+
+            // Scroll road background
+            roadOffset = (roadOffset + gameSpeed) % 40;
+
+            // Difficulty progression
+            gameSpeed = 5 + Math.floor(score / 12) * 0.4;
+
+            // Spawning traffic and power-ups
+            spawnTimer++;
+            if (spawnTimer > Math.max(25, 60 - Math.floor(score / 3))) {
+                spawnTimer = 0;
+                const laneWidth = (canvas.width - 30) / 6; 
+                const laneIndex = Math.floor(Math.random() * 6);
+                const laneX = 15 + laneIndex * laneWidth;
+
+                if (Math.random() < 0.76) {
+                    const randomColor = trafficColors[Math.floor(Math.random() * trafficColors.length)];
+                    trafficCars.push({
+                        x: laneX + (laneWidth - 50) / 2,
+                        y: -100,
+                        width: 50,
+                        height: 78,
+                        color: randomColor,
+                        speed: gameSpeed * 0.55 + Math.random() * 0.8
+                    });
+                } else {
+                    const randomItem = powerupSymbols[Math.floor(Math.random() * powerupSymbols.length)];
+                    powerUps.push({
+                        x: laneX + (laneWidth - 30) / 2,
+                        y: -50,
+                        width: 30,
+                        height: 30,
+                        symbol: randomItem,
+                        speed: gameSpeed * 0.75
+                    });
+                }
+            }
+
+            // Update traffic cars
+            for (let i = trafficCars.length - 1; i >= 0; i--) {
+                trafficCars[i].y += trafficCars[i].speed;
+
+                if (
+                    player.x < trafficCars[i].x + trafficCars[i].width - 6 &&
+                    player.x + player.width - 6 > trafficCars[i].x &&
+                    player.y < trafficCars[i].y + trafficCars[i].height - 6 &&
+                    player.y + player.height - 6 > trafficCars[i].y
+                ) {
+                    lives--;
+                    createParticles(player.x + player.width/2, player.y + player.height/2, '#ef4444');
+                    trafficCars.splice(i, 1);
+                    updateHUD();
+                    if (lives <= 0) {
+                        gameState = STATE_GAMEOVER;
+                        hudBar.classList.add('hidden');
+                        if (score > highScore) {
+                            highScore = score;
+                            localStorage.setItem('overtakeRushHighScore', highScore);
+                        }
+                        finalScoreText.textContent = `Total Overtakes: ${score}`;
+                        highScoreText.textContent = `Best Overtakes: ${highScore}`;
+                        gameOverScreen.classList.remove('hidden');
+                    }
+                    continue;
+                }
+
+                if (trafficCars[i].y > canvas.height) {
+                    trafficCars.splice(i, 1);
+                    score++;
+                    updateHUD();
+                }
+            }
+
+            // Update power-ups
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                powerUps[i].y += powerUps[i].speed;
+
+                if (
+                    player.x < powerUps[i].x + powerUps[i].width &&
+                    player.x + player.width > powerUps[i].x &&
+                    player.y < powerUps[i].y + powerUps[i].height &&
+                    player.y + player.height > powerUps[i].y
+                ) {
+                    score += 5;
+                    powerUpCount++;
+
+                    // Trigger British police siren ONLY if star is grabbed AND police car is selected
+                    if (powerUps[i].symbol === '⭐' && playerCarType === 'police') {
+                        playBritishPoliceSiren();
+                    }
+
+                    if (powerUpCount >= 5) {
+                        if (lives < 3) {
+                            lives++;
+                        }
+                        powerUpCount = 0;
+                    }
+                    updateHUD();
+                    createParticles(powerUps[i].x + powerUps[i].width/2, powerUps[i].y + powerUps[i].height/2, '#10b981');
+                    powerUps.splice(i, 1);
+                    continue;
+                }
+
+                if (powerUps[i].y > canvas.height) {
+                    powerUps.splice(i, 1);
+                }
+            }
+
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].x += particles[i].vx;
+                particles[i].y += particles[i].vy;
+                particles[i].alpha -= 0.03;
+                if (particles[i].alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 14; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    radius: Math.random() * 4 + 2,
+                    color: color,
+                    alpha: 1
+                });
+            }
+        }
+
+        // Draw professional top-down car with headlights and police siren
+        function drawTopDownCar(x, y, w, h, bodyColor, isPlayer = false, carType = 'normal') {
+            ctx.save();
+            ctx.translate(x, y);
+
+            let actualColor = bodyColor;
+            if (isPlayer && carType === 'police') {
+                actualColor = '#f8fafc'; // Mostly white body
+            }
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.35)';
+            ctx.beginPath();
+            ctx.roundRect(-2, 3, w + 4, h + 4, 8);
+            ctx.fill();
+
+            // Headlight Beams (Only in Night Track mode)
+            if (currentTheme === 'night') {
+                ctx.save();
+                const beamGrad = ctx.createLinearGradient(w/2, 0, w/2, -180);
+                beamGrad.addColorStop(0, isPlayer ? 'rgba(56, 189, 248, 0.35)' : 'rgba(253, 224, 71, 0.25)');
+                beamGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = beamGrad;
+                ctx.beginPath();
+                ctx.moveTo(-5, 0);
+                ctx.lineTo(w + 5, 0);
+                ctx.lineTo(w + 40, -180);
+                ctx.lineTo(-40, -180);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Tires
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-5, 12, 7, 18); 
+            ctx.fillRect(w - 2, 12, 7, 18); 
+            ctx.fillRect(-5, h - 30, 7, 18); 
+            ctx.fillRect(w - 2, h - 30, 7, 18); 
+
+            // Main Body
+            ctx.fillStyle = actualColor;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, w, h, 10);
+            ctx.fill();
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Police specific markings (Blue & White design)
+            if (isPlayer && carType === 'police') {
+                ctx.fillStyle = '#1d4ed8'; // Blue side panels / doors
+                ctx.fillRect(2, 24, w - 4, 26);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('POLICE', w / 2, 37);
+            }
+
+            // Windshield
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.roundRect(6, 14, w - 12, 16, 4);
+            ctx.fill();
+
+            // Rear window
+            ctx.beginPath();
+            ctx.roundRect(6, h - 26, w - 12, 12, 3);
+            ctx.fill();
+
+            // Headlights (Glowing in Night mode)
+            if (currentTheme === 'night') {
+                ctx.shadowColor = isPlayer ? '#38bdf8' : '#fde047';
+                ctx.shadowBlur = 10;
+            }
+            ctx.fillStyle = isPlayer ? '#38bdf8' : '#fde047';
+            ctx.fillRect(3, 2, 8, 5);
+            ctx.fillRect(w - 11, 2, 8, 5);
+            ctx.shadowBlur = 0;
+
+            // Taillights
+            if (currentTheme === 'night') {
+                ctx.shadowColor = '#ef4444';
+                ctx.shadowBlur = 8;
+            }
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(3, h - 7, 8, 5);
+            ctx.fillRect(w - 11, h - 7, 8, 5);
+            ctx.shadowBlur = 0;
+
+            // Player racing stripe (only for normal car)
+            if (isPlayer && carType === 'normal') {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(w / 2 - 3, 32, 6, h - 40);
+            }
+
+            // Larger Flashing Police Light Bar on roof (Red & Blue alternating)
+            if (isPlayer && carType === 'police') {
+                const flash = Math.floor(Date.now() / 150) % 2 === 0;
+                ctx.shadowColor = flash ? '#ef4444' : '#3b82f6';
+                ctx.shadowBlur = 16;
+                ctx.fillStyle = flash ? '#ef4444' : '#3b82f6';
+                ctx.fillRect(w / 2 - 13, 28, 26, 9);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(w / 2 - 2, 28, 4, 9);
+                ctx.shadowBlur = 0;
+            }
+
+            ctx.restore();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Highway Tarmac Background based on theme
+            let tarmacColor = '#1e293b';
+            if (currentTheme === 'cyberpunk') tarmacColor = '#05020d';
+            else if (currentTheme === 'pastel') tarmacColor = '#94a3b8';
+            else if (currentTheme === 'night') tarmacColor = '#030712';
+
+            ctx.fillStyle = tarmacColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Road Shoulders
+            let shoulderColor = '#f59e0b';
+            if (currentTheme === 'cyberpunk') shoulderColor = '#ff007f';
+            else if (currentTheme === 'pastel') shoulderColor = '#e2e8f0';
+            else if (currentTheme === 'night') shoulderColor = '#0ea5e9';
+
+            ctx.fillStyle = shoulderColor;
+            ctx.fillRect(0, 0, 15, canvas.height);
+            ctx.fillRect(canvas.width - 15, 0, 15, canvas.height);
+
+            // Draw Solid Straight Lane Dividers (Always White)
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            if (currentTheme === 'night') {
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = 6;
+            }
+            
+            ctx.setLineDash([]); 
+
+            const laneWidth = (canvas.width - 30) / 6;
+            for (let i = 1; i <= 5; i++) {
+                const dividerX = 15 + i * laneWidth;
+                ctx.beginPath();
+                ctx.moveTo(dividerX, 0);
+                ctx.lineTo(dividerX, canvas.height);
+                ctx.stroke();
+            }
+
+            ctx.shadowBlur = 0;
+
+            if (gameState === STATE_SPLASH) return;
+
+            // Draw Slower Traffic Cars
+            for (let car of trafficCars) {
+                drawTopDownCar(car.x, car.y, car.width, car.height, car.color, false, 'normal');
+            }
+
+            // Draw Power-ups
+            for (let p of powerUps) {
+                ctx.font = '28px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(p.symbol, p.x + p.width / 2, p.y + p.height / 2);
+            }
+
+            // Draw Player Car with selected car type
+            drawTopDownCar(player.x, player.y, player.width, player.height, player.color, true, playerCarType);
+
+            // Draw Particles
+            for (let p of particles) {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start animation loop
+        gameLoop();
+    </script>
+</body>
+</html>
