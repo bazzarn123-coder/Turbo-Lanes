@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Turbo Lane</title>
     <!-- Browser Address Bar Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏎️</text></svg>">
+    <link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏎️</text></svg>">
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #141e30, #243b55);
@@ -307,11 +307,11 @@
         <div id="instructionsScreen" class="overlay hidden">
             <h2>Driver's Guide</h2>
             <p style="text-align: left; max-width: 290px; margin: 0 auto 14px auto;">
-                🏎️ <b>Forward View:</b> All cars face forward toward the top of the screen[span_6](start_span)[span_6](end_span)!<br><br>
-                🕹️ <b>Steer:</b> Use <b>Left/Right Arrows</b>, <b>A/D keys</b>, or drag/swipe on touchscreens.[span_7](start_span)[span_7](end_span)<br><br>
-                🚙 <b>Overtake:</b> Pass slower traffic cars going the same way. Collisions cost lives[span_8](start_span)[span_8](end_span)!<br><br>
-                🔧 <b>Power-ups:</b> Collect wrenches, nitro & stars for +5 bonus points[span_9](start_span)[span_9](end_span)!<br><br>
-                ⚡ <b>Pace:</b> Traffic speeds up as you score higher[span_10](start_span)[span_10](end_span)!
+                🏎️ <b>Forward View:</b> All cars face forward toward the top of the screen!<br><br>
+                🕹️ <b>Steer:</b> Use <b>Left/Right Arrows</b>, <b>A/D keys</b>, or drag/swipe on touchscreens.<br><br>
+                🚙 <b>Overtake:</b> Pass slower traffic cars going the same way. Collisions cost lives!<br><br>
+                🔧 <b>Power-ups:</b> Collect wrenches, nitro & stars for +5 bonus points!<br><br>
+                ⚡ <b>Pace:</b> Traffic speeds up as you score higher!
             </p>
             <button class="btn" id="backToSplashBtn">Back</button>
         </div>
@@ -355,9 +355,22 @@
         </div>
     </div>
 
-    <div class="controls-hint">Use Arrow keys / A & D or Swipe to maneuver your racer[span_11](start_span)[span_11](end_span)</div>
+    <div class="controls-hint">Use Arrow keys / A & D or Swipe to maneuver your racer</div>
 
     <script>
+        // Dynamic Flashing Favicon (Red & Blue Police Light Style)
+        const faviconLink = document.getElementById('favicon');
+        let flashState = false;
+
+        if (faviconLink) {
+            setInterval(() => {
+                flashState = !flashState;
+                const color = flashState ? '%23ef4444' : '%233b82f6'; 
+                const svgFavicon = `<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22${color}%22/><text x=%2250%22 y=%2272%22 font-size=%2260%22 text-anchor=%22middle%22>🏎️</text></svg>`;
+                faviconLink.href = `data:image/svg+xml,${svgFavicon}`;
+            }, 300);
+        }
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
